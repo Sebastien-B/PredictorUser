@@ -23,36 +23,31 @@ data = r.json()
 with open("data_file.json", "w") as write_file:
     json.dump(data, write_file)
     
-print(data['prediction'][0]['trajectory'])
+#print(data['prediction'][0]['trajectory'])
 
-i = 0
+
 latitudes = []
 longitudes = []
 altitudes = []
 for x in data['prediction'][0]['trajectory']:
-    print(x)
-    """
-    latitudes[i] = x['latitude']
-    longitudes[i] = x['longitude']
-    altitudes[i] = x['altitude']
-    i = i + 1
-    """
-    
-"""    
+    latitudes.append(x['latitude'])
+    longitudes.append(x['longitude'])
+    altitudes.append(x['altitude'])
+  
 f = open("KML.txt", "w")
-f.write("<KML_File>\n")
-f.write("<Document>\n")
-for line in List2:
+f.write("<KML_File>\r\n")
+f.write("<Document>\r\n")
+for i in range(len(latitudes)):
     f.write("\t<Placemark>")
-    f.write("\t\t<decription>" + str(row[0]) + "</description>")
+    f.write("\t\t<decription>" + str(altitudes[i]) + "</description>")
     f.write("\t\t<Point>")
-    f.write("\t\t\t<coordinates>" + str(row[2]) + str(row[1]) + "</coordinates>")
+    f.write("\t\t\t<coordinates>" + str(longitudes[i]) + "," + str(latitudes[i]) + "</coordinates>")
     f.write("\t\t</Point>")
     f.write("\t</Placemark>")
-f.write("</Document>\n")
-f.write("</kml>\n")
+f.write("</Document>\r\n")
+f.write("</kml>\r\n")
 f.close()
-"""    
+   
 #deserialized = json.dumps(data,indent=4)
 #print(deserialized[0])
 
