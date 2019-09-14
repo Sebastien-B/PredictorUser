@@ -24,10 +24,10 @@ PARAMS = {'ascent_rate': float(ascent_rate),
 }
 
 if profile == 'standard_profile':
-    cutdown = input('Immediate cutdown? (1/0): ')
-    cutdown = int(cutdown)
+    imm_cutdown = input('Immediate cutdown? (1/0): ')
+    imm_cutdown = int(cutdown)
     if(cutdown):
-        burst_altitude = int(launch_altitude) + 50
+        burst_altitude = int(launch_altitude) + 10
     else:
         burst_altitude = input('Burst altitude: ')
     descent_rate = input('descent_rate: ')
@@ -35,7 +35,11 @@ if profile == 'standard_profile':
     PARAMS['descent_rate'] = float(descent_rate)
     
 elif profile == 'float_profile':
-    cutdown = 0
+    imm_cutdown = 0
+    float_cutdown = input('Cutdown at end of float? (1/0): ')
+    float_cutdown = int(float_cutdown)
+    if(float_cutdown):
+        descent_rate = input('Descent rate at end of floating period (m/s): ')
     stop_datetime = input('Stop time (YYYY-MM-DDTHH:MM:SSZ): ')
     float_altitude = input('Float altitude (m): ')
     PARAMS['stop_datetime'] = stop_datetime
@@ -46,9 +50,6 @@ else:
     sys.exit()
     
 # 2019-09-15T12:00:00Z
-
-
-
 
 # sending get request and saving the response as response object 
 r = requests.get(url = URL, params = PARAMS) 
@@ -63,21 +64,15 @@ linestring = kml.newlinestring(name='Trajectory')
 
 coords = []
 
-if(not int(cutdown)):
+if(not imm_cutdown):
     for x in data['prediction'][0]['trajectory']:
         coords.append((((x['longitude'] + 180) % 360) - 180, x['latitude'], x['altitude'])) 
     
 for x in data['prediction'][1]['trajectory']:
     coords.append((((x['longitude'] + 180) % 360) - 180, x['latitude'], x['altitude'])) 
 
-linestring.coords = coords
-linestring.altitudemode = simplekml.AltitudeMode.relativetoground
-linestring.extrude = 1
-linestring.style.linestyle.color = '50000000'
-linestring.style.polystyle.color = '990000ff'
-
 #Launch point placemark
-if(not int(cutdown)):
+if(not imm_cutdown):
     pnt = kml.newpoint()
     pnt.name = 'Launch'
     lon = data['prediction'][0]['trajectory'][0]['longitude']
@@ -108,4 +103,37 @@ lon = data['prediction'][1]['trajectory'][end]['longitude']
 lat = data['prediction'][1]['trajectory'][end]['latitude']
 pnt.coords = [((lon + 180) % 360 - 180, lat )]
 
-kml.save("trajectory.kml")
+if(float_cutdown):
+    PARAMS = {'ascent_rate': 0.1,
+          'launch_altitude': float(float_altitude),
+          'launch_datetime': stop_datetime,
+          'launch_latitude': data['prediction'][1]['trajectory'][end]['latitude'],
+          'launch_longitude': data['prediction'][1]['trajectory'][end]['longitude'],
+          'profile': 'standard_profile',
+          'burst_altitude' : float(float_altitude) + 10,
+          'descent_rate' : float(descent_rate)
+    }
+    r = requests.get(url = URL, params = PARAMS) 
+
+    # extracting data in json format 
+    data = r.json() 
+    with open("data_file.json", "w") as write_file:
+        json.dump(data, write_file)
+        
+    for x in data['prediction'][1]['trajectory']:
+        coords.append((((x['longitude'] + 180) % 360) - 180, x['latitude'], x['altitude'])) 
+
+    linestring.coords = coords
+    linestring.altitudemode = simplekml.AltitudeMode.relativetoground
+    linestring.extrude = 1
+    linestring.style.linestyle.color = '50000000'
+    linestring.style.polystyle.color = '990000ff'
+    
+    pnt = kml.newpoint()
+    pnt.name = 'Landing'
+    end = len(data['prediction'][1]['trajectory']) - 1
+    lon = data['prediction'][1]['trajectory'][end]['longitude']
+    lat = data['prediction'][1]['trajectory'][end]['latitude']
+    pnt.coords = [((lon + 180) % 360 - 180, lat )]
+    
+    kml.save("trajectory.kml")
