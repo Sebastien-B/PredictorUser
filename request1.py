@@ -24,12 +24,18 @@ PARAMS = {'ascent_rate': float(ascent_rate),
 }
 
 if profile == 'standard_profile':
-    burst_altitude = input('Burst altitude: ')
+    cutdown = input('Immediate cutdown? (1/0): ')
+    cutdown = int(cutdown)
+    if(cutdown):
+        burst_altitude = int(launch_altitude) + 50
+    else:
+        burst_altitude = input('Burst altitude: ')
     descent_rate = input('descent_rate: ')
     PARAMS['burst_altitude'] = float(burst_altitude)
     PARAMS['descent_rate'] = float(descent_rate)
     
 elif profile == 'float_profile':
+    cutdown = 0
     stop_datetime = input('Stop time (YYYY-MM-DDTHH:MM:SSZ): ')
     float_altitude = input('Float altitude (m): ')
     PARAMS['stop_datetime'] = stop_datetime
@@ -39,7 +45,7 @@ else:
     print('Error in profile name')
     sys.exit()
     
-# 2019-09-10T12:00:00Z
+# 2019-09-15T12:00:00Z
 
 
 
@@ -57,8 +63,9 @@ linestring = kml.newlinestring(name='Trajectory')
 
 coords = []
 
-for x in data['prediction'][0]['trajectory']:
-    coords.append((((x['longitude'] + 180) % 360) - 180, x['latitude'], x['altitude'])) 
+if(not int(cutdown)):
+    for x in data['prediction'][0]['trajectory']:
+        coords.append((((x['longitude'] + 180) % 360) - 180, x['latitude'], x['altitude'])) 
     
 for x in data['prediction'][1]['trajectory']:
     coords.append((((x['longitude'] + 180) % 360) - 180, x['latitude'], x['altitude'])) 
@@ -70,11 +77,12 @@ linestring.style.linestyle.color = '50000000'
 linestring.style.polystyle.color = '990000ff'
 
 #Launch point placemark
-pnt = kml.newpoint()
-pnt.name = 'Launch'
-lon = data['prediction'][0]['trajectory'][0]['longitude']
-lat = data['prediction'][0]['trajectory'][0]['latitude']
-pnt.coords = [((lon + 180) % 360 - 180, lat )]
+if(not int(cutdown)):
+    pnt = kml.newpoint()
+    pnt.name = 'Launch'
+    lon = data['prediction'][0]['trajectory'][0]['longitude']
+    lat = data['prediction'][0]['trajectory'][0]['latitude']
+    pnt.coords = [((lon + 180) % 360 - 180, lat )]
 
 #Burst Point placemark
 pnt = kml.newpoint()
@@ -88,7 +96,7 @@ lon = data['prediction'][0]['trajectory'][end]['longitude']
 lat = data['prediction'][0]['trajectory'][end]['latitude']
 pnt.coords = [((lon + 180) % 360 - 180, lat )]
 
-#Landing Point placemark
+#Landing/Float Point placemark
 pnt = kml.newpoint()
 if profile == 'standard_profile':
     pnt.name = 'Landing'
